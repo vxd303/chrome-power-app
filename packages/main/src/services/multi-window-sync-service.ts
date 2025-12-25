@@ -141,6 +141,7 @@ class MultiWindowSyncService {
   private lastWheelTime: number = 0;
   private accumulatedWheelRotation: number = 0;
   private wheelAccumulationTimer: NodeJS.Timeout | null = null;
+  private boundsUpdateInterval: NodeJS.Timeout | null = null;
 
   // Keyboard event deduplication
   private lastKeyEvent: {keycode: number; type: 'keydown' | 'keyup'; time: number} | null = null;
@@ -199,6 +200,13 @@ class MultiWindowSyncService {
         await this.startCdpSync();
       }
 
+      // Start periodic bounds update to handle window movement
+      this.boundsUpdateInterval = setInterval(() => {
+        this.updateWindowBounds().catch(err => {
+          logger.error('Failed to update window bounds:', err);
+        });
+      }, 500);
+
       logger.info('Multi-window sync started', {
         masterPid,
         slavePids,
@@ -235,6 +243,12 @@ class MultiWindowSyncService {
         this.wheelAccumulationTimer = null;
       }
       this.accumulatedWheelRotation = 0;
+
+      // Clear bounds update interval
+      if (this.boundsUpdateInterval) {
+        clearInterval(this.boundsUpdateInterval);
+        this.boundsUpdateInterval = null;
+      }
 
       this.isCapturing = false;
       this.masterWindowPid = null;
@@ -427,13 +441,10 @@ class MultiWindowSyncService {
   /**
    * Handle mouse down events
    */
-  private async handleMouseDown(event: MouseEventData): Promise<void> {
+  private handleMouseDown(event: MouseEventData): void {
     try {
       if (!this.isCapturing || !this.masterWindowBounds) return;
       if (!this.syncOptions.enableMouseSync) return;
-
-      // Update window bounds to ensure accurate coordinates even if windows moved
-      await this.updateWindowBounds();
 
       const {x, y, button} = event;
 
