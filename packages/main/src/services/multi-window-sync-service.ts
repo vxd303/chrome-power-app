@@ -427,10 +427,13 @@ class MultiWindowSyncService {
   /**
    * Handle mouse down events
    */
-  private handleMouseDown(event: MouseEventData): void {
+  private async handleMouseDown(event: MouseEventData): Promise<void> {
     try {
       if (!this.isCapturing || !this.masterWindowBounds) return;
       if (!this.syncOptions.enableMouseSync) return;
+
+      // Update window bounds to ensure accurate coordinates even if windows moved
+      await this.updateWindowBounds();
 
       const {x, y, button} = event;
 
@@ -486,13 +489,11 @@ class MultiWindowSyncService {
                 devLogger.debug(`→ Sending ${eventType} to slave ${slavePid} extension at (${slaveX}, ${slaveY})`);
 
                 this.windowManager.sendMouseEvent(slavePid, slaveX, slaveY, 'mousemove');
-                setTimeout(() => {
-                  try {
-                    this.windowManager.sendMouseEvent(slavePid, slaveX, slaveY, eventType);
-                  } catch (error) {
-                    logger.error(`Failed to send ${eventType} to slave ${slavePid}:`, error);
-                  }
-                }, 10);
+                try {
+                  this.windowManager.sendMouseEvent(slavePid, slaveX, slaveY, eventType);
+                } catch (error) {
+                  logger.error(`Failed to send ${eventType} to slave ${slavePid}:`, error);
+                }
                 break;
               }
             }
@@ -510,14 +511,12 @@ class MultiWindowSyncService {
           try {
             this.windowManager.sendMouseEvent(slavePid, slavePos.x, slavePos.y, 'mousemove');
 
-            setTimeout(() => {
-              try {
-                this.windowManager.sendMouseEvent(slavePid, slavePos.x, slavePos.y, eventType);
-                devLogger.debug(`→ Sent ${eventType} to slave ${slavePid} at (${slavePos.x}, ${slavePos.y})`);
-              } catch (error) {
-                logger.error(`Failed to send ${eventType} to slave ${slavePid}:`, error);
-              }
-            }, 10);
+            try {
+              this.windowManager.sendMouseEvent(slavePid, slavePos.x, slavePos.y, eventType);
+              devLogger.debug(`→ Sent ${eventType} to slave ${slavePid} at (${slavePos.x}, ${slavePos.y})`);
+            } catch (error) {
+              logger.error(`Failed to send ${eventType} to slave ${slavePid}:`, error);
+            }
           } catch (error) {
             logger.error(`Failed to send mouse down event to slave ${slavePid}:`, error);
           }

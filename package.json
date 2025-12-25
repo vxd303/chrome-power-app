@@ -50,7 +50,7 @@
     "@types/react-redux": "^7.1.30",
     "@typescript-eslint/eslint-plugin": "6.7.2",
     "autoprefixer": "^10.4.16",
-    "cross-env": "7.0.3",
+    "cross-env": "^7.0.3",
     "electron": "^31.0.0",
     "electron-builder": "^25.1.8",
     "electron-devtools-installer": "^3.2.0",
